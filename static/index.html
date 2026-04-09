@@ -455,8 +455,8 @@ const WS_BASE  = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.
 const API_BASE = `${location.protocol}//${location.host}`;
 
 const generateClientId = () => 'c_' + Math.random().toString(36).slice(2,10);
-let MY_ID = sessionStorage.getItem('retro_client_id');
-if (!MY_ID) { MY_ID = generateClientId(); sessionStorage.setItem('retro_client_id',MY_ID); }
+let MY_ID = localStorage.getItem('retro_client_id');
+if (!MY_ID) { MY_ID = generateClientId(); localStorage.setItem('retro_client_id',MY_ID); }
 
 const fmt = (ms) => {
   const s = Math.max(0,Math.ceil(ms/1000));
