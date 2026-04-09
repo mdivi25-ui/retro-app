@@ -1019,6 +1019,7 @@ function ParticipantSetup({sessionId, onJoin}) {
 // ─── Session Page ─────────────────────────────────────────────────────────────
 function SessionPage({sessionId}) {
   const [session,setSession] = useState(null);
+  const savedName = localStorage.getItem('retro_name_'+sessionId);
   const [joined,setJoined] = useState(false);
   const [error,setError] = useState(null);
   const wsRef = useRef(null);
@@ -1026,6 +1027,7 @@ function SessionPage({sessionId}) {
   const prevPhase = useRef(null);
 
   const connect = useCallback((name,isFacilitator) => {
+           localStorage.setItem('retro_name_'+sessionId, name);
     const ws = new WebSocket(`${WS_BASE}/ws/${sessionId}/${MY_ID}`);
     wsRef.current = ws;
     ws.onopen = () => {
@@ -1069,6 +1071,10 @@ function SessionPage({sessionId}) {
       </div>
     </div>
   );
+
+ useEffect(()=>{
+    if(savedName && !joined) connect(savedName, false);
+  },[]);
 
   if(!joined || !session) return (
     <ParticipantSetup sessionId={sessionId} onJoin={connect}/>
