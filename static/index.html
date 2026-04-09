@@ -982,12 +982,19 @@ function PhaseBanner({session, send}) {
 function ParticipantSetup({sessionId, onJoin}) {
   const [name,setName] = useState('');
   const [isFac,setIsFac] = useState(false);
+  const [facTaken,setFacTaken] = useState(false);
+
+  useEffect(()=>{
+    fetch(`/api/sessions/${sessionId}`)
+      .then(r=>r.json())
+      .then(s=>setFacTaken(s.facilitatorId !== null))
+      .catch(()=>{});
+  },[]);
 
   const handle = () => {
     const n = name.trim() || 'Anonymous';
     onJoin(n,isFac);
   };
-
   return (
     <div className="setup-screen">
       <div className="setup-card">
@@ -1002,11 +1009,20 @@ function ParticipantSetup({sessionId, onJoin}) {
           autoFocus
         />
         <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:24}}>
-          <input type="checkbox" id="fac-cb" checked={isFac} onChange={e=>setIsFac(e.target.checked)}
+         <input type="checkbox" id="fac-cb" checked={isFac}
+            onChange={e=>{
+              if(facTaken){ alert('A facilitator has already joined! Please uncheck and join as participant.'); return; }
+              setIsFac(e.target.checked);
+            }}
             style={{accentColor:'var(--primary)',width:16,height:16}}/>
           <label htmlFor="fac-cb" style={{fontSize:'.9rem',color:'var(--muted2)',cursor:'pointer'}}>
             I'm the facilitator (Scrum Master)
           </label>
+          {facTaken && (
+            <span style={{fontSize:'.8rem',color:'var(--red)',background:'rgba(248,113,113,.1)',border:'1px solid rgba(248,113,113,.3)',borderRadius:'99px',padding:'2px 10px'}}>
+              ⛔ Facilitator already in session
+            </span>
+          )}
         </div>
         <button className="btn btn-primary btn-lg" style={{width:'100%'}} onClick={handle}>
           Join Retrospective →
