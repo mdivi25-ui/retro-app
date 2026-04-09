@@ -1,0 +1,1300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>RetroBoard – Agile Retrospectives</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg:        #0b0d12;
+    --surface:   #13161f;
+    --card:      #1a1e2c;
+    --card-hov:  #1f2438;
+    --border:    #252a3a;
+    --primary:   #6366f1;
+    --primary-d: #4f52d4;
+    --cyan:      #22d3ee;
+    --green:     #34d399;
+    --amber:     #fbbf24;
+    --red:       #f87171;
+    --text:      #e2e8f0;
+    --muted:     #64748b;
+    --muted2:    #8892a4;
+    --radius:    14px;
+    --radius-sm: 8px;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--surface); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+  /* Utilities */
+  .font-syne { font-family: 'Syne', sans-serif; }
+  .hidden { display: none !important; }
+
+  /* ── Animations ── */
+  @keyframes fadeUp {
+    from { opacity:0; transform:translateY(20px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+  @keyframes slideIn {
+    from { opacity:0; transform:translateX(-16px); }
+    to   { opacity:1; transform:translateX(0); }
+  }
+  @keyframes pulse-ring {
+    0%   { box-shadow:0 0 0 0 rgba(99,102,241,.5); }
+    70%  { box-shadow:0 0 0 14px rgba(99,102,241,0); }
+    100% { box-shadow:0 0 0 0 rgba(99,102,241,0); }
+  }
+  @keyframes reveal-card {
+    0%   { opacity:0; transform:scale(.92) rotateY(12deg); filter:blur(8px); }
+    60%  { filter:blur(0); }
+    100% { opacity:1; transform:scale(1) rotateY(0deg); filter:blur(0); }
+  }
+  @keyframes shimmer {
+    0%   { background-position:-200% 0; }
+    100% { background-position:200% 0; }
+  }
+  @keyframes timerPulse {
+    0%,100% { opacity:1; }
+    50%      { opacity:.6; }
+  }
+  @keyframes countdownWarn {
+    0%,100% { color: var(--text); }
+    50%     { color: var(--red); }
+  }
+  @keyframes spinIn {
+    from { opacity:0; transform:scale(.5) rotate(-20deg); }
+    to   { opacity:1; transform:scale(1) rotate(0deg); }
+  }
+  @keyframes confetti-fall {
+    0%   { transform: translateY(-20px) rotate(0deg); opacity:1; }
+    100% { transform: translateY(100vh) rotate(720deg); opacity:0; }
+  }
+
+  .anim-fade-up  { animation: fadeUp .5s ease both; }
+  .anim-slide-in { animation: slideIn .4s ease both; }
+  .anim-spin-in  { animation: spinIn .4s cubic-bezier(.34,1.56,.64,1) both; }
+
+  /* ── Layout ── */
+  .container { max-width:1400px; margin:0 auto; padding:0 24px; }
+
+  /* ── Nav ── */
+  .nav {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 32px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(11,13,18,.92);
+    backdrop-filter: blur(12px);
+    position: sticky; top:0; z-index:100;
+  }
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800; font-size: 1.3rem;
+    background: linear-gradient(135deg, var(--primary), var(--cyan));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    letter-spacing: -.02em;
+  }
+  .logo span { opacity:.6; font-weight:400; }
+
+  /* ── Buttons ── */
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 20px; border-radius: var(--radius-sm);
+    font-family: 'DM Sans', sans-serif; font-size: .9rem; font-weight: 600;
+    cursor: pointer; border: none; transition: all .18s ease;
+    text-decoration: none; white-space: nowrap;
+  }
+  .btn-primary {
+    background: var(--primary); color: #fff;
+  }
+  .btn-primary:hover { background: var(--primary-d); transform:translateY(-1px); box-shadow:0 8px 24px rgba(99,102,241,.35); }
+  .btn-primary:active { transform:translateY(0); }
+  .btn-ghost {
+    background: transparent; color: var(--muted2);
+    border: 1px solid var(--border);
+  }
+  .btn-ghost:hover { background: var(--card); color: var(--text); border-color: var(--muted); }
+  .btn-danger {
+    background: rgba(248,113,113,.15); color: var(--red); border:1px solid rgba(248,113,113,.3);
+  }
+  .btn-danger:hover { background: rgba(248,113,113,.25); }
+  .btn-cyan {
+    background: rgba(34,211,238,.15); color: var(--cyan); border:1px solid rgba(34,211,238,.3);
+  }
+  .btn-cyan:hover { background: rgba(34,211,238,.25); }
+  .btn-green {
+    background: rgba(52,211,153,.15); color: var(--green); border:1px solid rgba(52,211,153,.3);
+  }
+  .btn-green:hover { background: rgba(52,211,153,.25); }
+  .btn-amber {
+    background: rgba(251,191,36,.15); color: var(--amber); border:1px solid rgba(251,191,36,.3);
+  }
+  .btn-amber:hover { background: rgba(251,191,36,.25); }
+  .btn-sm { padding: 7px 14px; font-size: .82rem; }
+  .btn-lg { padding: 14px 28px; font-size: 1rem; }
+  .btn:disabled { opacity: .4; cursor: not-allowed; pointer-events: none; }
+
+  /* ── Inputs ── */
+  .input, .textarea {
+    width: 100%; padding: 12px 16px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); color: var(--text);
+    font-family: 'DM Sans', sans-serif; font-size: .95rem;
+    transition: border-color .18s;
+    outline: none;
+  }
+  .input:focus, .textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(99,102,241,.15); }
+  .textarea { resize: vertical; min-height: 80px; line-height: 1.6; }
+  .label { font-size:.82rem; font-weight:600; color:var(--muted2); text-transform:uppercase; letter-spacing:.06em; margin-bottom:8px; display:block; }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px;
+  }
+  .card-hover { transition: all .2s ease; cursor:pointer; }
+  .card-hover:hover { background: var(--card-hov); border-color: var(--muted); transform:translateY(-2px); box-shadow:0 8px 32px rgba(0,0,0,.4); }
+
+  /* ── Landing ── */
+  .landing {
+    min-height: calc(100vh - 65px);
+    display: flex; align-items: center; justify-content: center;
+    padding: 60px 24px;
+    background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(99,102,241,.12), transparent);
+  }
+  .landing-inner { width:100%; max-width: 560px; }
+  .landing-title {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(2.2rem, 5vw, 3.2rem);
+    font-weight: 800; line-height: 1.1;
+    letter-spacing: -.03em; margin-bottom: 16px;
+  }
+  .landing-title .grad {
+    background: linear-gradient(135deg, var(--primary), var(--cyan));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .landing-sub { color: var(--muted2); font-size: 1.05rem; line-height: 1.7; margin-bottom: 40px; }
+
+  .tabs { display:flex; gap:4px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm); padding:4px; margin-bottom:28px; }
+  .tab { flex:1; padding:9px; border-radius:6px; border:none; background:transparent; color:var(--muted); font-family:'DM Sans',sans-serif; font-size:.9rem; font-weight:500; cursor:pointer; transition:all .15s; }
+  .tab.active { background:var(--card); color:var(--text); box-shadow:0 2px 8px rgba(0,0,0,.4); }
+
+  .section-row {
+    display:grid; grid-template-columns:1fr auto auto;
+    gap:10px; align-items:center;
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm);
+    padding:12px 16px; margin-bottom:10px;
+  }
+  .section-row .sec-name { color:var(--text); font-size:.95rem; }
+  .section-row .sec-time { display:flex; align-items:center; gap:6px; }
+  .time-input { width:70px; padding:6px 10px; background:var(--card); border:1px solid var(--border); border-radius:6px; color:var(--text); font-size:.9rem; text-align:center; outline:none; }
+  .time-input:focus { border-color:var(--primary); }
+
+  /* ── Session layout ── */
+  .session-layout { display:flex; flex-direction:column; min-height:calc(100vh - 65px); }
+
+  /* ── Phase banner ── */
+  .phase-banner {
+    padding:12px 32px;
+    display:flex; align-items:center; justify-content:space-between;
+    background: var(--surface); border-bottom:1px solid var(--border);
+    flex-wrap:wrap; gap:12px;
+  }
+  .phase-label {
+    font-family:'Syne',sans-serif; font-size:.85rem; font-weight:700;
+    text-transform:uppercase; letter-spacing:.1em; color:var(--muted);
+  }
+  .section-title-banner {
+    font-family:'Syne',sans-serif; font-size:1.25rem; font-weight:700;
+  }
+  .phase-badge {
+    display:inline-flex; align-items:center; gap:6px;
+    padding:5px 14px; border-radius:99px; font-size:.8rem; font-weight:600;
+  }
+  .badge-waiting  { background:rgba(100,116,139,.15); color:var(--muted2); border:1px solid rgba(100,116,139,.25); }
+  .badge-input    { background:rgba(99,102,241,.15);  color:var(--primary); border:1px solid rgba(99,102,241,.25); animation:timerPulse 2s infinite; }
+  .badge-revealed { background:rgba(34,211,238,.15);  color:var(--cyan);    border:1px solid rgba(34,211,238,.25); }
+  .badge-voting   { background:rgba(251,191,36,.15);  color:var(--amber);   border:1px solid rgba(251,191,36,.25); }
+  .badge-done     { background:rgba(52,211,153,.15);  color:var(--green);   border:1px solid rgba(52,211,153,.25); }
+
+  /* ── Timer ── */
+  .timer-wrap { display:flex; align-items:center; gap:14px; }
+  .timer-ring { position:relative; width:52px; height:52px; }
+  .timer-ring svg { transform:rotate(-90deg); }
+  .timer-ring-bg    { fill:none; stroke:var(--border); stroke-width:3; }
+  .timer-ring-fg    { fill:none; stroke:var(--primary); stroke-width:3; stroke-linecap:round; transition:stroke-dashoffset .5s ease; }
+  .timer-ring-fg.warn { stroke: var(--red); }
+  .timer-text {
+    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+    font-family:'Syne',sans-serif; font-size:.72rem; font-weight:700; line-height:1;
+  }
+  .timer-text.warn { animation:countdownWarn 1s infinite; }
+
+  /* ── Facilitator panel ── */
+  .fac-panel {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--radius); padding:20px; margin:16px 20px 0;
+  }
+  .fac-panel-title { font-family:'Syne',sans-serif; font-size:.8rem; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.1em; margin-bottom:14px; }
+  .fac-grid { display:flex; flex-wrap:wrap; gap:8px; }
+
+  /* ── Board ── */
+  .board-area { flex:1; padding:20px; overflow:auto; }
+  .board-columns { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:16px; }
+  .board-col {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--radius); padding:16px; min-height:400px;
+  }
+  .col-header {
+    display:flex; align-items:center; gap:10px; margin-bottom:16px; padding-bottom:14px;
+    border-bottom:1px solid var(--border);
+  }
+  .col-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+  .col-title { font-family:'Syne',sans-serif; font-weight:700; font-size:1rem; }
+  .col-count {
+    margin-left:auto; background:var(--card); border:1px solid var(--border);
+    border-radius:99px; padding:2px 10px; font-size:.78rem; color:var(--muted2);
+  }
+
+  /* ── Retro Card ── */
+  .retro-card {
+    background:var(--card); border:1px solid var(--border);
+    border-radius:var(--radius-sm); padding:14px; margin-bottom:12px;
+    transition:all .2s ease; position:relative; overflow:hidden;
+  }
+  .retro-card.revealed { animation:reveal-card .55s cubic-bezier(.34,1.2,.64,1) both; }
+  .retro-card.highlighted { border-color:var(--amber); box-shadow:0 0 0 1px var(--amber), 0 4px 20px rgba(251,191,36,.15); }
+  .retro-card:hover { border-color:var(--muted); background:var(--card-hov); }
+  .card-text { font-size:.93rem; line-height:1.6; color:var(--text); margin-bottom:10px; }
+  .card-author { font-size:.78rem; color:var(--muted); margin-bottom:8px; }
+  .card-actions { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+
+  /* ── Vote button ── */
+  .vote-btn {
+    display:inline-flex; align-items:center; gap:5px;
+    padding:4px 12px; border-radius:99px; border:1px solid var(--border);
+    background:transparent; color:var(--muted2); font-size:.82rem; font-weight:600;
+    cursor:pointer; transition:all .15s;
+  }
+  .vote-btn:hover { border-color:var(--primary); color:var(--primary); background:rgba(99,102,241,.1); }
+  .vote-btn.voted { border-color:var(--primary); color:var(--primary); background:rgba(99,102,241,.15); }
+  .vote-dot { width:8px; height:8px; border-radius:50%; background:currentColor; }
+
+  /* ── Hidden card (input phase, others' cards) ── */
+  .retro-card.hidden-card {
+    background: linear-gradient(135deg, #1a1e2c, #151929);
+    border-style: dashed;
+  }
+  .hidden-shimmer {
+    height:12px; border-radius:6px;
+    background:linear-gradient(90deg,var(--border),var(--card-hov),var(--border));
+    background-size:200% auto;
+    animation:shimmer 1.8s infinite; margin-bottom:8px;
+  }
+
+  /* ── Input area (participant input phase) ── */
+  .input-area { padding:20px; }
+  .input-section { margin-bottom:24px; }
+  .input-section-label { font-family:'Syne',sans-serif; font-size:.9rem; font-weight:700; margin-bottom:12px; color:var(--muted2); }
+  .my-cards { display:flex; flex-direction:column; gap:10px; }
+  .my-card {
+    background:var(--card); border:1px solid var(--border);
+    border-radius:var(--radius-sm); padding:12px 14px;
+    display:flex; align-items:flex-start; gap:10px;
+    transition:border-color .15s;
+  }
+  .my-card:focus-within { border-color:var(--primary); }
+  .my-card textarea {
+    flex:1; background:transparent; border:none; outline:none;
+    color:var(--text); font-family:'DM Sans',sans-serif; font-size:.93rem;
+    resize:none; line-height:1.6; min-height:40px;
+  }
+  .add-card-btn {
+    display:flex; align-items:center; gap:8px;
+    padding:10px 16px; border-radius:var(--radius-sm);
+    border:1px dashed var(--border); background:transparent;
+    color:var(--muted); font-family:'DM Sans',sans-serif; font-size:.88rem;
+    cursor:pointer; transition:all .15s; width:100%;
+  }
+  .add-card-btn:hover { border-color:var(--primary); color:var(--primary); background:rgba(99,102,241,.05); }
+
+  /* ── Comments ── */
+  .comments-section { margin-top:12px; padding-top:12px; border-top:1px solid var(--border); }
+  .comment-item { margin-bottom:8px; }
+  .comment-text { font-size:.83rem; color:var(--muted2); line-height:1.5; }
+  .comment-author { font-size:.76rem; color:var(--muted); margin-bottom:2px; }
+  .comment-input-row { display:flex; gap:6px; margin-top:8px; }
+  .comment-input { flex:1; padding:7px 12px; background:var(--bg); border:1px solid var(--border); border-radius:6px; color:var(--text); font-size:.83rem; outline:none; font-family:'DM Sans',sans-serif; }
+  .comment-input:focus { border-color:var(--primary); }
+
+  /* ── Participant sidebar ── */
+  .participants-bar {
+    padding:14px 20px; border-top:1px solid var(--border);
+    display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+    background:var(--surface);
+  }
+  .p-chip {
+    display:inline-flex; align-items:center; gap:6px;
+    padding:5px 12px; border-radius:99px;
+    background:var(--card); border:1px solid var(--border);
+    font-size:.82rem; color:var(--muted2);
+  }
+  .p-dot { width:7px; height:7px; border-radius:50%; background:var(--green); }
+
+  /* ── Setup screen ── */
+  .setup-screen {
+    flex:1; display:flex; align-items:center; justify-content:center;
+    background:radial-gradient(ellipse 60% 50% at 50% 0%,rgba(99,102,241,.08),transparent);
+  }
+  .setup-card {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--radius); padding:40px; width:100%; max-width:480px;
+    animation:fadeUp .4s ease;
+  }
+  .setup-title { font-family:'Syne',sans-serif; font-size:1.6rem; font-weight:800; margin-bottom:6px; }
+  .setup-sub { color:var(--muted2); font-size:.95rem; margin-bottom:28px; line-height:1.6; }
+
+  /* ── ROTI ── */
+  .roti-wrap { display:flex; gap:10px; justify-content:center; margin-top:16px; }
+  .roti-btn {
+    width:52px; height:52px; border-radius:50%;
+    border:2px solid var(--border); background:var(--card);
+    font-size:1.2rem; font-weight:700; color:var(--muted2);
+    cursor:pointer; transition:all .2s; font-family:'Syne',sans-serif;
+  }
+  .roti-btn:hover { border-color:var(--primary); transform:scale(1.1); }
+  .roti-btn.selected { border-color:var(--primary); background:rgba(99,102,241,.15); color:var(--primary); transform:scale(1.15); animation:spinIn .3s ease; }
+
+  /* ── Votes remaining indicator ── */
+  .votes-left {
+    display:inline-flex; align-items:center; gap:6px;
+    padding:6px 14px; border-radius:99px;
+    background:rgba(251,191,36,.1); border:1px solid rgba(251,191,36,.25);
+    color:var(--amber); font-size:.83rem; font-weight:600;
+  }
+
+  /* ── Toast ── */
+  .toast-container {
+    position:fixed; bottom:24px; right:24px; z-index:9999;
+    display:flex; flex-direction:column; gap:8px;
+  }
+  .toast {
+    padding:12px 18px; border-radius:var(--radius-sm);
+    background:var(--card); border:1px solid var(--border);
+    color:var(--text); font-size:.88rem; font-weight:500;
+    box-shadow:0 8px 32px rgba(0,0,0,.5);
+    animation:slideIn .3s ease;
+    display:flex; align-items:center; gap:8px;
+  }
+
+  /* ── Share link ── */
+  .share-box {
+    display:flex; gap:8px; align-items:center;
+    background:var(--bg); border:1px solid var(--border);
+    border-radius:var(--radius-sm); padding:10px 14px;
+    margin-top:10px;
+  }
+  .share-url { flex:1; color:var(--cyan); font-size:.85rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+  /* ── Progress steps ── */
+  .progress-steps { display:flex; align-items:center; gap:0; }
+  .prog-step {
+    display:flex; align-items:center; gap:0;
+  }
+  .prog-dot {
+    width:28px; height:28px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:.75rem; font-weight:700; font-family:'Syne',sans-serif;
+    border:2px solid var(--border); background:var(--card); color:var(--muted);
+    transition:all .3s;
+  }
+  .prog-dot.active { border-color:var(--primary); background:rgba(99,102,241,.2); color:var(--primary); }
+  .prog-dot.done   { border-color:var(--green); background:rgba(52,211,153,.15); color:var(--green); }
+  .prog-line { width:32px; height:2px; background:var(--border); transition:background .3s; }
+  .prog-line.done { background:var(--green); }
+
+  /* ── Mobile ── */
+  @media(max-width:640px) {
+    .fac-grid { gap:6px; }
+    .btn { padding:8px 14px; font-size:.82rem; }
+    .board-columns { grid-template-columns:1fr; }
+    .phase-banner { padding:12px 16px; }
+  }
+
+  /* ── Drag-over highlight ── */
+  .drag-over { border-color:var(--primary)!important; background:rgba(99,102,241,.05); }
+  .dragging   { opacity:.5; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback, useContext, createContext, useReducer } = React;
+
+// ─── Utilities ────────────────────────────────────────────────────────────────
+const WS_BASE  = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}`;
+const API_BASE = `${location.protocol}//${location.host}`;
+
+const generateClientId = () => 'c_' + Math.random().toString(36).slice(2,10);
+let MY_ID = sessionStorage.getItem('retro_client_id');
+if (!MY_ID) { MY_ID = generateClientId(); sessionStorage.setItem('retro_client_id',MY_ID); }
+
+const fmt = (ms) => {
+  const s = Math.max(0,Math.ceil(ms/1000));
+  const m = Math.floor(s/60), sec = s%60;
+  return `${m}:${sec.toString().padStart(2,'0')}`;
+};
+
+const SECTION_COLORS = ['#6366f1','#22d3ee','#34d399','#f87171','#fbbf24','#a78bfa'];
+
+// ─── Toast context ────────────────────────────────────────────────────────────
+const ToastCtx = createContext(null);
+function ToastProvider({children}) {
+  const [toasts,setToasts] = useState([]);
+  const push = useCallback((msg,icon='✓') => {
+    const id = Date.now();
+    setToasts(t=>[...t,{id,msg,icon}]);
+    setTimeout(()=>setToasts(t=>t.filter(x=>x.id!==id)),3200);
+  },[]);
+  return (
+    <ToastCtx.Provider value={push}>
+      {children}
+      <div className="toast-container">
+        {toasts.map(t=>(
+          <div key={t.id} className="toast">
+            <span>{t.icon}</span> {t.msg}
+          </div>
+        ))}
+      </div>
+    </ToastCtx.Provider>
+  );
+}
+const useToast = () => useContext(ToastCtx);
+
+// ─── Router (hash-based) ──────────────────────────────────────────────────────
+function useHash() {
+  const [hash,setHash] = useState(location.hash);
+  useEffect(()=>{
+    const h = ()=>setHash(location.hash);
+    window.addEventListener('hashchange',h);
+    return ()=>window.removeEventListener('hashchange',h);
+  },[]);
+  return hash;
+}
+
+// ─── Timer Ring component ─────────────────────────────────────────────────────
+function TimerRing({endMs, running, totalMs}) {
+  const [now,setNow] = useState(Date.now());
+  useEffect(()=>{
+    if(!running) return;
+    const t = setInterval(()=>setNow(Date.now()),250);
+    return ()=>clearInterval(t);
+  },[running]);
+
+  const remaining = endMs ? Math.max(0, endMs - now) : 0;
+  const total = totalMs || 1;
+  const pct = endMs ? remaining/total : 1;
+  const r = 22; const circ = 2*Math.PI*r;
+  const offset = circ*(1-pct);
+  const warn = remaining < 60000 && remaining > 0;
+
+  return (
+    <div className="timer-wrap">
+      <div className="timer-ring">
+        <svg width="52" height="52" viewBox="0 0 52 52">
+          <circle className="timer-ring-bg" cx="26" cy="26" r={r}/>
+          <circle
+            className={`timer-ring-fg${warn?' warn':''}`}
+            cx="26" cy="26" r={r}
+            strokeDasharray={circ}
+            strokeDashoffset={offset}
+          />
+        </svg>
+        <div className={`timer-text${warn?' warn':''}`}>
+          {endMs ? fmt(remaining) : '--:--'}
+        </div>
+      </div>
+      <div>
+        <div style={{fontSize:'.78rem',color:'var(--muted)',fontWeight:600}}>
+          {running ? 'TIME LEFT' : endMs ? 'PAUSED' : 'TIMER'}
+        </div>
+        <div style={{fontSize:'1.1rem',fontWeight:700,fontFamily:'Syne,sans-serif',color:warn?'var(--red)':'var(--text)'}}>
+          {endMs ? fmt(remaining) : '--:--'}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Facilitator Controls ─────────────────────────────────────────────────────
+function FacilitatorPanel({session, send}) {
+  const toast = useToast();
+  const isFac = session.facilitatorId === MY_ID;
+  if(!isFac) return null;
+
+  const phase = session.phase;
+  const secIdx = session.currentSectionIndex;
+  const sections = session.sections;
+  const isLast = secIdx >= sections.length - 1;
+
+  const handleExport = async () => {
+    const r = await fetch(`/api/sessions/${session.id}/export`,{method:'POST'});
+    const {text} = await r.json();
+    const blob = new Blob([text],{type:'text/plain'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href=url; a.download=`retro-${session.id}.txt`; a.click();
+    URL.revokeObjectURL(url);
+    toast('Exported!','📄');
+  };
+
+  return (
+    <div className="fac-panel anim-fade-up">
+      <div className="fac-panel-title">🎯 Facilitator Controls</div>
+      <div className="fac-grid">
+        {(phase==='waiting'||phase==='input') && !session.timerRunning && (
+          <button className="btn btn-primary btn-sm"
+            onClick={()=>send({type:'fac_start_timer'})}>▶ Start Timer</button>
+        )}
+        {phase==='input' && session.timerRunning && (
+          <button className="btn btn-amber btn-sm"
+            onClick={()=>send({type:'fac_pause_timer'})}>⏸ Pause</button>
+        )}
+        {phase==='input' && !session.timerRunning && session.timerEnd==null && session.timerPausedRemaining && (
+          <button className="btn btn-green btn-sm"
+            onClick={()=>send({type:'fac_resume_timer'})}>▶ Resume</button>
+        )}
+        {(phase==='input'||phase==='waiting') && (
+          <button className="btn btn-cyan btn-sm"
+            onClick={()=>{send({type:'fac_reveal'});toast('Cards revealed! 🎉','🃏')}}>
+            ✨ Reveal Now
+          </button>
+        )}
+        {phase==='revealed' && !isLast && (
+          <button className="btn btn-primary btn-sm"
+            onClick={()=>send({type:'fac_next_section'})}>
+            → Next Section
+          </button>
+        )}
+        {(phase==='revealed'||phase==='input') && isLast && (
+          <button className="btn btn-amber btn-sm"
+            onClick={()=>send({type:'fac_start_voting'})}>
+            🗳 Open Voting
+          </button>
+        )}
+        {phase==='voting' && (
+          <button className="btn btn-green btn-sm"
+            onClick={()=>send({type:'fac_end_session'})}>
+            ✅ End Session
+          </button>
+        )}
+        <button className={`btn btn-sm ${session.locked?'btn-green':'btn-ghost'}`}
+          onClick={()=>send({type:'fac_toggle_lock'})}>
+          {session.locked ? '🔓 Unlock' : '🔒 Lock'}
+        </button>
+        <button className="btn btn-danger btn-sm"
+          onClick={()=>{if(confirm('Reset board?'))send({type:'fac_reset'})}}>
+          ↺ Reset
+        </button>
+        {(phase==='voting'||phase==='done') && (
+          <button className="btn btn-ghost btn-sm" onClick={handleExport}>📄 Export</button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Hidden card placeholder ──────────────────────────────────────────────────
+function HiddenCardPlaceholder({n}) {
+  return (
+    <div className="retro-card hidden-card">
+      <div className="hidden-shimmer" style={{width:'85%'}}/>
+      <div className="hidden-shimmer" style={{width:'60%'}}/>
+      <div style={{fontSize:'.76rem',color:'var(--muted)',marginTop:8}}>🔒 hidden until reveal</div>
+    </div>
+  );
+}
+
+// ─── Retro Card ───────────────────────────────────────────────────────────────
+function RetroCard({card, session, send, revealed, animDelay=0}) {
+  const [showComment,setShowComment] = useState(false);
+  const [commentText,setCommentText] = useState('');
+  const isFac = session.facilitatorId === MY_ID;
+  const isOwner = card.participantId === MY_ID;
+  const votesUsed = Object.values(session.cards).reduce((acc,c)=>acc+(c.votes.includes(MY_ID)?1:0),0);
+  const hasVoted = card.votes.includes(MY_ID);
+  const authorName = session.anonymous ? 'Anonymous' : (session.participants[card.participantId]||'Unknown');
+  const phase = session.phase;
+
+  const handleVote = () => send({type:'vote',cardId:card.id});
+  const handleHighlight = () => send({type:'fac_toggle_highlight',cardId:card.id});
+  const handleComment = () => {
+    if(!commentText.trim()) return;
+    send({type:'add_comment',cardId:card.id,text:commentText.trim()});
+    setCommentText('');
+  };
+  const handleDelete = () => send({type:'delete_card',cardId:card.id});
+
+  return (
+    <div
+      className={`retro-card${revealed?' revealed':''}${card.highlighted?' highlighted':''}`}
+      style={{animationDelay:`${animDelay}ms`}}
+    >
+      <div className="card-text">{card.text}</div>
+      <div className="card-author">{authorName}</div>
+      <div className="card-actions">
+        {(phase==='voting'||phase==='done') && (
+          <button
+            className={`vote-btn${hasVoted?' voted':''}`}
+            onClick={handleVote}
+            disabled={!hasVoted && votesUsed>=3}
+            title={!hasVoted&&votesUsed>=3?'No votes left':''}
+          >
+            <span className="vote-dot"/>
+            {card.votes.length}
+          </button>
+        )}
+        {isFac && revealed && (
+          <button className={`btn btn-sm ${card.highlighted?'btn-amber':'btn-ghost'}`}
+            onClick={handleHighlight} style={{padding:'3px 10px',fontSize:'.76rem'}}>
+            {card.highlighted?'⭐':'☆'}
+          </button>
+        )}
+        {revealed && (
+          <button className="btn btn-ghost btn-sm" style={{padding:'3px 10px',fontSize:'.76rem'}}
+            onClick={()=>setShowComment(v=>!v)}>
+            💬 {card.comments.length||''}
+          </button>
+        )}
+        {(isOwner||isFac) && !session.locked && (
+          <button className="btn btn-danger btn-sm" style={{padding:'3px 10px',fontSize:'.76rem',marginLeft:'auto'}}
+            onClick={handleDelete}>✕</button>
+        )}
+      </div>
+      {showComment && (
+        <div className="comments-section">
+          {card.comments.map(c=>(
+            <div key={c.id} className="comment-item">
+              <div className="comment-author">
+                {session.anonymous?'Anon':session.participants[c.authorId]||'?'}
+              </div>
+              <div className="comment-text">{c.text}</div>
+            </div>
+          ))}
+          <div className="comment-input-row">
+            <input className="comment-input" placeholder="Add comment…"
+              value={commentText} onChange={e=>setCommentText(e.target.value)}
+              onKeyDown={e=>e.key==='Enter'&&handleComment()}/>
+            <button className="btn btn-primary btn-sm" onClick={handleComment}>Send</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Board Columns (revealed / voting / done) ─────────────────────────────────
+function BoardView({session, send}) {
+  const [dragCard,setDragCard] = useState(null);
+  const [dragOverCol,setDragOverCol] = useState(null);
+  const [newlyRevealed,setNewlyRevealed] = useState(true);
+
+  useEffect(()=>{
+    const t = setTimeout(()=>setNewlyRevealed(false),3000);
+    return ()=>clearTimeout(t);
+  },[]);
+
+  const votesUsed = Object.values(session.cards).reduce((acc,c)=>acc+(c.votes.includes(MY_ID)?1:0),0);
+  const phase = session.phase;
+
+  return (
+    <div className="board-area">
+      {phase==='voting' && (
+        <div style={{marginBottom:16,display:'flex',alignItems:'center',gap:12}}>
+          <div className="votes-left">
+            🗳 {3-votesUsed} vote{3-votesUsed!==1?'s':''} remaining
+          </div>
+          <div style={{fontSize:'.83rem',color:'var(--muted)'}}>
+            Click the dot on a card to vote. Click again to unvote.
+          </div>
+        </div>
+      )}
+      <div className="board-columns">
+        {session.sections.map((sec,si)=>{
+          const cards = Object.values(session.cards)
+            .filter(c=>c.sectionId===sec.id)
+            .sort((a,b)=>(b.votes.length-a.votes.length)||a.order-b.order);
+          const color = SECTION_COLORS[si%SECTION_COLORS.length];
+          return (
+            <div
+              key={sec.id}
+              className={`board-col${dragOverCol===sec.id?' drag-over':''}`}
+              onDragOver={e=>{e.preventDefault();setDragOverCol(sec.id);}}
+              onDragLeave={()=>setDragOverCol(null)}
+              onDrop={()=>{ setDragOverCol(null); /* cards stay in their section */ }}
+            >
+              <div className="col-header">
+                <div className="col-dot" style={{background:color}}/>
+                <div className="col-title">{sec.name}</div>
+                <div className="col-count">{cards.length}</div>
+              </div>
+              {cards.map((card,ci)=>(
+                <div
+                  key={card.id}
+                  draggable
+                  onDragStart={()=>setDragCard(card.id)}
+                  onDragEnd={()=>setDragCard(null)}
+                  className={dragCard===card.id?'dragging':''}
+                >
+                  <RetroCard
+                    card={card} session={session} send={send}
+                    revealed={true}
+                    animDelay={newlyRevealed ? ci*80+si*200 : 0}
+                  />
+                </div>
+              ))}
+              {cards.length===0 && (
+                <div style={{color:'var(--muted)',fontSize:'.88rem',textAlign:'center',padding:'40px 0'}}>
+                  No cards
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─── Input Phase (participant view) ──────────────────────────────────────────
+function InputPhaseView({session, send}) {
+  const currentSec = session.sections[session.currentSectionIndex];
+  const myCards = Object.values(session.cards)
+    .filter(c=>c.sectionId===currentSec?.id && c.participantId===MY_ID);
+  const otherCards = Object.values(session.cards)
+    .filter(c=>c.sectionId===currentSec?.id && c.participantId!==MY_ID);
+
+  const [draft,setDraft] = useState('');
+  const [editMap,setEditMap] = useState({});
+
+  const addCard = () => {
+    const t = draft.trim();
+    if(!t||session.locked) return;
+    send({type:'add_card',sectionId:currentSec.id,text:t});
+    setDraft('');
+  };
+
+  const updateCard = (id,text) => {
+    setEditMap(m=>({...m,[id]:text}));
+    send({type:'update_card',cardId:id,text});
+  };
+
+  return (
+    <div className="input-area">
+      <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:20}}>
+        <div style={{fontFamily:'Syne',fontWeight:700,fontSize:'1.1rem'}}>
+          {currentSec?.name}
+        </div>
+        <div style={{color:'var(--muted)',fontSize:'.85rem'}}>— add your thoughts below</div>
+        {session.locked && (
+          <span className="phase-badge badge-waiting">🔒 Locked</span>
+        )}
+      </div>
+
+      {/* My cards */}
+      <div style={{marginBottom:20}}>
+        <div className="input-section-label">Your cards ({myCards.length})</div>
+        <div className="my-cards">
+          {myCards.map(card=>(
+            <div key={card.id} className="my-card">
+              <textarea
+                rows={2}
+                defaultValue={card.text}
+                disabled={session.locked}
+                onChange={e=>updateCard(card.id,e.target.value)}
+              />
+              <button
+                className="btn btn-danger btn-sm"
+                style={{padding:'4px 8px',fontSize:'.76rem',alignSelf:'flex-start'}}
+                onClick={()=>send({type:'delete_card',cardId:card.id})}
+                disabled={session.locked}
+              >✕</button>
+            </div>
+          ))}
+        </div>
+        {!session.locked && (
+          <div style={{marginTop:10,display:'flex',gap:8}}>
+            <input className="input" style={{flex:1}}
+              placeholder="Type your thought and press Add…"
+              value={draft} onChange={e=>setDraft(e.target.value)}
+              onKeyDown={e=>e.key==='Enter'&&(e.preventDefault(),addCard())}
+            />
+            <button className="btn btn-primary btn-sm" onClick={addCard}>+ Add</button>
+          </div>
+        )}
+      </div>
+
+      {/* Others' hidden cards */}
+      <div>
+        <div className="input-section-label">Other participants ({otherCards.length} cards hidden)</div>
+        {otherCards.length===0 ? (
+          <div style={{color:'var(--muted)',fontSize:'.85rem'}}>
+            Waiting for others to add cards…
+          </div>
+        ) : (
+          otherCards.map((_,i)=><HiddenCardPlaceholder key={i}/>)
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Done / ROTI screen ──────────────────────────────────────────────────────
+function DoneView({session,send}) {
+  const myRoti = session.roti[MY_ID];
+  const rotiVals = Object.values(session.roti);
+  const avg = rotiVals.length ? (rotiVals.reduce((a,b)=>a+b,0)/rotiVals.length).toFixed(1) : null;
+
+  return (
+    <div style={{flex:1}}>
+      <BoardView session={session} send={send}/>
+      <div style={{maxWidth:480,margin:'0 auto',padding:'0 20px 40px'}}>
+        <div className="card" style={{textAlign:'center',padding:32}}>
+          <div style={{fontSize:'2rem',marginBottom:8}}>🎉</div>
+          <div style={{fontFamily:'Syne',fontWeight:800,fontSize:'1.3rem',marginBottom:8}}>Session Complete!</div>
+          <div style={{color:'var(--muted2)',marginBottom:24,fontSize:'.95rem'}}>
+            Rate the session: How well did we use our time?
+          </div>
+          <div style={{fontSize:'.85rem',color:'var(--muted)',marginBottom:12}}>
+            Return on Time Invested
+          </div>
+          <div className="roti-wrap">
+            {[1,2,3,4,5].map(n=>(
+              <button key={n} className={`roti-btn${myRoti===n?' selected':''}`}
+                onClick={()=>send({type:'roti',rating:n})}>{n}</button>
+            ))}
+          </div>
+          {avg && (
+            <div style={{marginTop:16,color:'var(--muted2)',fontSize:'.88rem'}}>
+              Team avg: <strong style={{color:'var(--amber)'}}>{avg}/5</strong>
+              {' '}({rotiVals.length} rated)
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Section Progress ─────────────────────────────────────────────────────────
+function SectionProgress({session}) {
+  const {sections,currentSectionIndex,phase} = session;
+  return (
+    <div className="progress-steps">
+      {sections.map((sec,i)=>{
+        const done = i < currentSectionIndex || phase==='voting'||phase==='done';
+        const active = i===currentSectionIndex && phase!=='voting'&&phase!=='done';
+        return (
+          <div key={sec.id} className="prog-step">
+            <div className={`prog-dot${active?' active':done?' done':''}`}>{i+1}</div>
+            {i<sections.length-1 && <div className={`prog-line${done?' done':''}`}/>}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── Phase Banner ─────────────────────────────────────────────────────────────
+function PhaseBanner({session, send}) {
+  const {phase,sections,currentSectionIndex,timerRunning,timerEnd,timerPausedRemaining} = session;
+  const currentSec = sections[currentSectionIndex];
+
+  const phaseBadge = {
+    waiting: <span className="phase-badge badge-waiting">⏳ Waiting</span>,
+    input:   <span className="phase-badge badge-input">✏️ Writing</span>,
+    revealed:<span className="phase-badge badge-revealed">✨ Revealed</span>,
+    voting:  <span className="phase-badge badge-voting">🗳 Voting</span>,
+    done:    <span className="phase-badge badge-done">✅ Done</span>,
+  }[phase];
+
+  const totalMs = currentSec ? currentSec.timeboxMinutes*60*1000 : 0;
+
+  return (
+    <div className="phase-banner">
+      <div style={{display:'flex',alignItems:'center',gap:16,flexWrap:'wrap'}}>
+        <SectionProgress session={session}/>
+        {currentSec && phase!=='voting'&&phase!=='done' && (
+          <div>
+            <div className="phase-label">Current</div>
+            <div className="section-title-banner">{currentSec.name}</div>
+          </div>
+        )}
+        {(phase==='voting'||phase==='done') && (
+          <div>
+            <div className="phase-label">All Sections</div>
+            <div className="section-title-banner">Discussion Board</div>
+          </div>
+        )}
+        {phaseBadge}
+      </div>
+      <div style={{display:'flex',alignItems:'center',gap:16}}>
+        {(phase==='input'||phase==='waiting') && (
+          <TimerRing
+            endMs={timerEnd}
+            running={timerRunning}
+            totalMs={totalMs}
+          />
+        )}
+        <div style={{display:'flex',flexDirection:'column',gap:2,alignItems:'flex-end'}}>
+          <div style={{fontSize:'.76rem',color:'var(--muted)'}}>
+            {Object.keys(session.participants).length} participant{Object.keys(session.participants).length!==1?'s':''}
+          </div>
+          <div style={{fontSize:'.76rem',color:'var(--muted)'}}>
+            ID: <code style={{color:'var(--cyan)'}}>{session.id}</code>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Participant Setup ────────────────────────────────────────────────────────
+function ParticipantSetup({sessionId, onJoin}) {
+  const [name,setName] = useState('');
+  const [isFac,setIsFac] = useState(false);
+
+  const handle = () => {
+    const n = name.trim() || 'Anonymous';
+    onJoin(n,isFac);
+  };
+
+  return (
+    <div className="setup-screen">
+      <div className="setup-card">
+        <div style={{fontSize:'2.5rem',marginBottom:12}}>👋</div>
+        <div className="setup-title">Join Session</div>
+        <div className="setup-sub">Enter your name to join the retrospective.</div>
+        <label className="label">Your Name</label>
+        <input className="input" style={{marginBottom:16}}
+          placeholder="e.g. Sarah"
+          value={name} onChange={e=>setName(e.target.value)}
+          onKeyDown={e=>e.key==='Enter'&&handle()}
+          autoFocus
+        />
+        <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:24}}>
+          <input type="checkbox" id="fac-cb" checked={isFac} onChange={e=>setIsFac(e.target.checked)}
+            style={{accentColor:'var(--primary)',width:16,height:16}}/>
+          <label htmlFor="fac-cb" style={{fontSize:'.9rem',color:'var(--muted2)',cursor:'pointer'}}>
+            I'm the facilitator (Scrum Master)
+          </label>
+        </div>
+        <button className="btn btn-primary btn-lg" style={{width:'100%'}} onClick={handle}>
+          Join Retrospective →
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Session Page ─────────────────────────────────────────────────────────────
+function SessionPage({sessionId}) {
+  const [session,setSession] = useState(null);
+  const [joined,setJoined] = useState(false);
+  const [error,setError] = useState(null);
+  const wsRef = useRef(null);
+  const toast = useToast();
+  const prevPhase = useRef(null);
+
+  const connect = useCallback((name,isFacilitator) => {
+    const ws = new WebSocket(`${WS_BASE}/ws/${sessionId}/${MY_ID}`);
+    wsRef.current = ws;
+    ws.onopen = () => {
+      ws.send(JSON.stringify({type:'join',name,isFacilitator}));
+      setJoined(true);
+    };
+    ws.onmessage = e => {
+      const msg = JSON.parse(e.data);
+      if(msg.type==='session_update') {
+        setSession(prev => {
+          const s = msg.session;
+          // Phase change toasts
+          if(prev && prev.phase!==s.phase) {
+            if(s.phase==='revealed') toast('🃏 Cards revealed! Discuss…','✨');
+            if(s.phase==='voting')   toast('🗳 Voting is open!','🗳');
+            if(s.phase==='done')     toast('Session ended. Rate your ROTI!','✅');
+          }
+          return s;
+        });
+      }
+    };
+    ws.onerror = () => setError('Connection error. Try refreshing.');
+    ws.onclose = () => {
+      if(joined) setTimeout(()=>connect(name,isFacilitator),2000);
+    };
+  },[sessionId]);
+
+  const send = useCallback((msg) => {
+    if(wsRef.current?.readyState===1) wsRef.current.send(JSON.stringify(msg));
+  },[]);
+
+  // Copy link helper
+  const shareUrl = `${location.origin}/#session/${sessionId}`;
+
+  if(error) return (
+    <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center'}}>
+      <div className="card" style={{maxWidth:400,textAlign:'center',padding:40}}>
+        <div style={{color:'var(--red)',fontSize:'1.5rem',marginBottom:12}}>⚠️</div>
+        <div style={{marginBottom:16}}>{error}</div>
+        <button className="btn btn-primary" onClick={()=>location.reload()}>Retry</button>
+      </div>
+    </div>
+  );
+
+  if(!joined || !session) return (
+    <ParticipantSetup sessionId={sessionId} onJoin={connect}/>
+  );
+
+  const phase = session.phase;
+  const isFac = session.facilitatorId === MY_ID;
+
+  return (
+    <div className="session-layout">
+      <PhaseBanner session={session} send={send}/>
+
+      {/* Share link strip */}
+      <div style={{padding:'8px 20px',background:'var(--bg)',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',gap:12,flexWrap:'wrap'}}>
+        <span style={{fontSize:'.8rem',color:'var(--muted)',flexShrink:0}}>Share link:</span>
+        <div className="share-box" style={{flex:1,maxWidth:500,marginTop:0,padding:'6px 12px'}}>
+          <span className="share-url">{shareUrl}</span>
+          <button className="btn btn-ghost btn-sm"
+            onClick={()=>{navigator.clipboard.writeText(shareUrl);toast('Link copied!','🔗')}}>
+            Copy
+          </button>
+        </div>
+      </div>
+
+      {isFac && <FacilitatorPanel session={session} send={send}/>}
+
+      {/* Main content area */}
+      <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
+        {phase==='waiting' && (
+          <div className="setup-screen" style={{minHeight:300}}>
+            <div style={{textAlign:'center'}}>
+              <div style={{fontSize:'3rem',marginBottom:16}}>⏳</div>
+              <div style={{fontFamily:'Syne',fontWeight:700,fontSize:'1.4rem',marginBottom:8}}>
+                Waiting for facilitator to start…
+              </div>
+              <div style={{color:'var(--muted2)',fontSize:'.95rem'}}>
+                Section: <strong>{session.sections[session.currentSectionIndex]?.name}</strong>
+              </div>
+              <div style={{marginTop:24,display:'flex',gap:8,justifyContent:'center',flexWrap:'wrap'}}>
+                {Object.entries(session.participants).map(([id,name])=>(
+                  <div key={id} className="p-chip">
+                    <div className="p-dot"/>
+                    {name}
+                    {session.facilitatorId===id&&' 🎯'}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {phase==='input' && <InputPhaseView session={session} send={send}/>}
+        {phase==='revealed' && <BoardView session={session} send={send}/>}
+        {phase==='voting'   && <BoardView session={session} send={send}/>}
+        {phase==='done'     && <DoneView  session={session} send={send}/>}
+      </div>
+
+      {/* Participants bar */}
+      <div className="participants-bar">
+        <span style={{fontSize:'.78rem',color:'var(--muted)',fontWeight:600}}>PARTICIPANTS</span>
+        {Object.entries(session.participants).map(([id,name])=>(
+          <div key={id} className="p-chip">
+            <div className="p-dot"/>
+            {session.anonymous?'Anon':name}
+            {session.facilitatorId===id&&' 🎯'}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Landing Page ─────────────────────────────────────────────────────────────
+const DEFAULT_SECTIONS = [
+  {name:'What went well',   timeboxMinutes:6},
+  {name:'What went wrong',  timeboxMinutes:6},
+  {name:'Improvements',     timeboxMinutes:8},
+];
+
+function LandingPage() {
+  const [tab,setTab]       = useState('create');
+  const [name,setName]     = useState('');
+  const [sections,setSecs] = useState(DEFAULT_SECTIONS);
+  const [anon,setAnon]     = useState(false);
+  const [joinId,setJoinId] = useState('');
+  const [loading,setLoading]= useState(false);
+  const toast = useToast();
+
+  const addSection = () => setSecs(s=>[...s,{name:'',timeboxMinutes:5}]);
+  const removeSection = i => setSecs(s=>s.filter((_,j)=>j!==i));
+  const updateSection = (i,field,val) => setSecs(s=>s.map((x,j)=>j===i?{...x,[field]:val}:x));
+
+  const createSession = async () => {
+    const secs = sections
+      .map(s=>({id:'s_'+Math.random().toString(36).slice(2,8),name:s.name.trim()||'Section',timeboxMinutes:Number(s.timeboxMinutes)||5}));
+    setLoading(true);
+    try {
+      const r = await fetch('/api/sessions',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({name:name.trim()||'Retrospective',sections:secs,anonymous:anon})});
+      const {sessionId} = await r.json();
+      location.hash = `#session/${sessionId}`;
+    } catch(e) {
+      toast('Failed to create session','❌');
+    } finally { setLoading(false); }
+  };
+
+  const joinSession = () => {
+    const id = joinId.trim();
+    if(!id) return toast('Enter a session ID or URL','⚠️');
+    const match = id.match(/session\/([a-z0-9]+)/i);
+    location.hash = `#session/${match?match[1]:id}`;
+  };
+
+  return (
+    <div className="landing">
+      <div className="landing-inner anim-fade-up">
+        <div className="landing-title">
+          Run better<br/><span className="grad">retrospectives.</span>
+        </div>
+        <div className="landing-sub">
+          Real-time, hide-and-reveal retrospectives for distributed Agile teams.
+          Private input. Simultaneous reveal. Structured discussion.
+        </div>
+
+        <div className="tabs">
+          <button className={`tab${tab==='create'?' active':''}`} onClick={()=>setTab('create')}>Create Session</button>
+          <button className={`tab${tab==='join'?' active':''}`}   onClick={()=>setTab('join')}>Join Session</button>
+        </div>
+
+        {tab==='create' && (
+          <div className="anim-fade-up">
+            <label className="label">Session Name</label>
+            <input className="input" style={{marginBottom:20}}
+              placeholder="e.g. Sprint 42 Retrospective"
+              value={name} onChange={e=>setName(e.target.value)}/>
+
+            <label className="label">Sections & Timeboxes</label>
+            {sections.map((sec,i)=>(
+              <div key={i} className="section-row">
+                <input className="sec-name" style={{background:'transparent',border:'none',outline:'none',color:'var(--text)',fontSize:'.95rem',fontFamily:'DM Sans'}}
+                  placeholder="Section name"
+                  value={sec.name} onChange={e=>updateSection(i,'name',e.target.value)}/>
+                <div className="sec-time">
+                  <input type="number" className="time-input" min={1} max={60}
+                    value={sec.timeboxMinutes}
+                    onChange={e=>updateSection(i,'timeboxMinutes',e.target.value)}/>
+                  <span style={{color:'var(--muted)',fontSize:'.82rem'}}>min</span>
+                </div>
+                {sections.length>1 && (
+                  <button onClick={()=>removeSection(i)}
+                    style={{background:'none',border:'none',color:'var(--muted)',cursor:'pointer',fontSize:'1rem'}}>✕</button>
+                )}
+              </div>
+            ))}
+            <button className="add-card-btn" style={{marginBottom:20}} onClick={addSection}>
+              + Add Section
+            </button>
+
+            <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:24}}>
+              <input type="checkbox" id="anon-cb" checked={anon} onChange={e=>setAnon(e.target.checked)}
+                style={{accentColor:'var(--primary)',width:16,height:16}}/>
+              <label htmlFor="anon-cb" style={{fontSize:'.9rem',color:'var(--muted2)',cursor:'pointer'}}>
+                Anonymous mode (hide participant names)
+              </label>
+            </div>
+
+            <button className="btn btn-primary btn-lg" style={{width:'100%'}}
+              onClick={createSession} disabled={loading}>
+              {loading ? 'Creating…' : 'Create Retrospective →'}
+            </button>
+          </div>
+        )}
+
+        {tab==='join' && (
+          <div className="anim-fade-up">
+            <label className="label">Session ID or URL</label>
+            <input className="input" style={{marginBottom:20}}
+              placeholder="e.g. a1b2c3d4 or paste link"
+              value={joinId} onChange={e=>setJoinId(e.target.value)}
+              onKeyDown={e=>e.key==='Enter'&&joinSession()}/>
+            <button className="btn btn-primary btn-lg" style={{width:'100%'}} onClick={joinSession}>
+              Join Session →
+            </button>
+            <div style={{marginTop:20,padding:16,background:'var(--surface)',borderRadius:'var(--radius)',border:'1px solid var(--border)'}}>
+              <div style={{fontSize:'.83rem',color:'var(--muted2)',lineHeight:1.7}}>
+                💡 Ask your Scrum Master to share the session link, or enter the 8-character session ID.
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── App Shell ────────────────────────────────────────────────────────────────
+function App() {
+  const hash = useHash();
+
+  const match = hash.match(/#session\/([a-z0-9]+)/i);
+  const sessionId = match ? match[1] : null;
+
+  return (
+    <ToastProvider>
+      <nav className="nav">
+        <a className="logo" href="#" style={{textDecoration:'none'}}>
+          RetroBoard<span> by Agile</span>
+        </a>
+        {sessionId && (
+          <div style={{display:'flex',gap:8}}>
+            <button className="btn btn-ghost btn-sm" onClick={()=>{
+              if(confirm('Leave session and go home?')) location.hash='';
+            }}>← Home</button>
+          </div>
+        )}
+      </nav>
+
+      {sessionId
+        ? <SessionPage key={sessionId} sessionId={sessionId}/>
+        : <LandingPage/>
+      }
+    </ToastProvider>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
